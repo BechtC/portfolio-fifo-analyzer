@@ -59,8 +59,10 @@ logs/
 csvs/*.csv
 !csvs/README.md
 
-# Generierte HTML-Reports
+# Generierte Reports (HTML, Excel, PDF)
 output/*.html
+output/*.xlsx
+output/*.pdf
 !output/README.md
 
 # Temporäre Dateien
