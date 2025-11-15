@@ -1,0 +1,4 @@
+Date,Type,Shares,Price,Amount,Tax,Company
+2024-01-15,Buy,100,50.00,5000.00,0.00,Simple Stock
+2024-02-20,Buy,50,55.00,2750.00,0.00,Simple Stock
+2024-03-10,Sell,80,60.00,4800.00,120.00,Simple Stock

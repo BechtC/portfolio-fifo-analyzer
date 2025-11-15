@@ -1,0 +1,6 @@
+Datum;Typ;Anzahl;Preis;Betrag;Steuer;Unternehmen
+15.01.2024;Kauf;25;380,50;9512,50;0,00;NVIDIA Corporation
+20.02.2024;Kauf;15;420,75;6311,25;0,00;NVIDIA Corporation
+10.03.2024;Verkauf;10;450,00;4500,00;174,06;NVIDIA Corporation
+05.04.2024;Kauf;20;410,25;8205,00;0,00;NVIDIA Corporation
+15.05.2024;Verkauf;15;485,00;7275,00;305,48;NVIDIA Corporation

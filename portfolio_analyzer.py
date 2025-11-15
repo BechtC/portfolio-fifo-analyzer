@@ -484,6 +484,358 @@ class PortfolioFIFOAnalyzer:
         print(f"   Netto-Cashflow:    {self.analysis_results['net_cashflow']:,.2f} {self.currency}")
         print(f"   Gesamtrendite:     {self.analysis_results['total_return_pct']:,.1f}%")
 
+    def generate_html_report(self, output_file="output/portfolio_report.html"):
+        """
+        Generiert einen interaktiven HTML-Report
+
+        Args:
+            output_file (str): Pfad für die Output-HTML-Datei
+        """
+        from datetime import datetime
+
+        # Erstelle output-Verzeichnis falls nicht vorhanden
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+
+        # Formatierte Werte für HTML
+        stats = self.analysis_results
+        company = self.company_name
+
+        # Datum für Report
+        report_date = datetime.now().strftime("%d.%m.%Y %H:%M")
+
+        # Bereite Transaktionsdaten für die Tabelle vor
+        transactions_html = ""
+        for idx, row in self.transactions.iterrows():
+            date_str = row['Date'].strftime("%d.%m.%Y") if hasattr(row['Date'], 'strftime') else str(row['Date'])
+            trans_type = row['Type']
+            shares = row['Shares']
+            price = row['Price']
+            amount = row['Amount']
+            tax = row.get('Tax', 0)
+
+            type_class = "buy" if str(trans_type).lower() in ['buy', 'kauf'] else "sell"
+            type_emoji = "🟢" if type_class == "buy" else "🔴"
+
+            transactions_html += f"""
+                <tr class="{type_class}">
+                    <td>{date_str}</td>
+                    <td>{type_emoji} {trans_type}</td>
+                    <td>{shares:,.0f}</td>
+                    <td>{price:,.2f} {self.currency}</td>
+                    <td>{amount:,.2f} {self.currency}</td>
+                    <td>{tax:,.2f} {self.currency}</td>
+                </tr>
+            """
+
+        # Bereite Portfolio-Positionen vor
+        portfolio_html = ""
+        for pos in self.portfolio:
+            date_str = pos['date'].strftime("%d.%m.%Y") if hasattr(pos['date'], 'strftime') else str(pos['date'])
+            shares = pos['shares']
+            price = pos['price']
+            cost_basis = pos['cost_basis']
+
+            if self.current_price:
+                current_value = shares * self.current_price
+                unrealized = current_value - cost_basis
+                unrealized_pct = (unrealized / cost_basis * 100) if cost_basis > 0 else 0
+                unrealized_class = "positive" if unrealized >= 0 else "negative"
+
+                portfolio_html += f"""
+                    <tr>
+                        <td>{date_str}</td>
+                        <td>{shares:,.2f}</td>
+                        <td>{price:,.2f} {self.currency}</td>
+                        <td>{cost_basis:,.2f} {self.currency}</td>
+                        <td>{current_value:,.2f} {self.currency}</td>
+                        <td class="{unrealized_class}">{unrealized:+,.2f} {self.currency} ({unrealized_pct:+.1f}%)</td>
+                    </tr>
+                """
+            else:
+                portfolio_html += f"""
+                    <tr>
+                        <td>{date_str}</td>
+                        <td>{shares:,.2f}</td>
+                        <td>{price:,.2f} {self.currency}</td>
+                        <td>{cost_basis:,.2f} {self.currency}</td>
+                        <td colspan="2">-</td>
+                    </tr>
+                """
+
+        # HTML Template
+        html_content = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{company} - Portfolio FIFO Analyse</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }}
+        .container {{
+            max-width: 1400px;
+            margin: 0 auto;
+        }}
+        .header {{
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }}
+        h1 {{
+            color: #667eea;
+            margin-bottom: 10px;
+        }}
+        .subtitle {{
+            color: #666;
+            font-size: 14px;
+        }}
+        .metrics-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+        .metric-card {{
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }}
+        .metric-card:hover {{
+            transform: translateY(-5px);
+        }}
+        .metric-label {{
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }}
+        .metric-value {{
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }}
+        .metric-value.positive {{
+            color: #10b981;
+        }}
+        .metric-value.negative {{
+            color: #ef4444;
+        }}
+        .metric-subtext {{
+            font-size: 12px;
+            color: #999;
+        }}
+        .section {{
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }}
+        h2 {{
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }}
+        th {{
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #667eea;
+        }}
+        tr.buy {{
+            background: #f0fdf4;
+        }}
+        tr.sell {{
+            background: #fef2f2;
+        }}
+        .positive {{
+            color: #10b981;
+            font-weight: bold;
+        }}
+        .negative {{
+            color: #ef4444;
+            font-weight: bold;
+        }}
+        .chart-container {{
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 {company} - Portfolio FIFO Analyse</h1>
+            <p class="subtitle">Erstellt am: {report_date}</p>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">💰 Gesamt Investiert</div>
+                <div class="metric-value">{stats['total_invested']:,.2f} {self.currency}</div>
+                <div class="metric-subtext">Alle Käufe</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">💸 Gesamt Entnommen</div>
+                <div class="metric-value">{stats['total_withdrawn']:,.2f} {self.currency}</div>
+                <div class="metric-subtext">Alle Verkäufe</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">📈 Realisierte Gewinne</div>
+                <div class="metric-value {'positive' if stats['total_realized_gains'] >= 0 else 'negative'}">
+                    {stats['total_realized_gains']:+,.2f} {self.currency}
+                </div>
+                <div class="metric-subtext">Brutto</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">🏦 Gezahlte Steuern</div>
+                <div class="metric-value">{stats['total_taxes']:,.2f} {self.currency}</div>
+                <div class="metric-subtext">Abgeltungssteuer</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">💵 Netto-Gewinne</div>
+                <div class="metric-value {'positive' if stats['net_realized_gains'] >= 0 else 'negative'}">
+                    {stats['net_realized_gains']:+,.2f} {self.currency}
+                </div>
+                <div class="metric-subtext">Nach Steuern</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">💎 Unrealisierte Gewinne</div>
+                <div class="metric-value {'positive' if stats['unrealized_gains'] >= 0 else 'negative'}">
+                    {stats['unrealized_gains']:+,.2f} {self.currency}
+                </div>
+                <div class="metric-subtext">Aktuelle Positionen</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">🎯 Gesamt-Gewinne</div>
+                <div class="metric-value {'positive' if stats['total_gains'] >= 0 else 'negative'}">
+                    {stats['total_gains']:+,.2f} {self.currency}
+                </div>
+                <div class="metric-subtext">Realisiert + Unrealisiert</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">💰 Netto-Cashflow</div>
+                <div class="metric-value {'positive' if stats['net_cashflow'] >= 0 else 'negative'}">
+                    {stats['net_cashflow']:+,.2f} {self.currency}
+                </div>
+                <div class="metric-subtext">Entnommen - Investiert</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">📊 Gesamt-Rendite</div>
+                <div class="metric-value {'positive' if stats['total_return_pct'] >= 0 else 'negative'}">
+                    {stats['total_return_pct']:+,.1f}%
+                </div>
+                <div class="metric-subtext">ROI</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">🔢 Verbleibende Aktien</div>
+                <div class="metric-value">{stats['remaining_shares']:,.0f}</div>
+                <div class="metric-subtext">Im Portfolio</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">📉 Kostenbasis</div>
+                <div class="metric-value">{stats['remaining_cost_basis']:,.2f} {self.currency}</div>
+                <div class="metric-subtext">Verbleibende Positionen</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">💰 Aktueller Wert</div>
+                <div class="metric-value">{stats['current_value']:,.2f} {self.currency}</div>
+                <div class="metric-subtext">Bei aktuellem Kurs</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Transaktionshistorie</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Typ</th>
+                        <th>Aktien</th>
+                        <th>Preis</th>
+                        <th>Betrag</th>
+                        <th>Steuern</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {transactions_html}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>💼 Aktuelle Portfolio-Positionen</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kaufdatum</th>
+                        <th>Aktien</th>
+                        <th>Kaufpreis</th>
+                        <th>Kostenbasis</th>
+                        <th>Aktueller Wert</th>
+                        <th>Unrealisierter Gewinn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {portfolio_html}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <p style="text-align: center; color: #999; font-size: 12px;">
+                ⚠️ <strong>Rechtlicher Hinweis:</strong> Dieses Tool dient nur zur Unterstützung bei der Portfolioanalyse.
+                Es ersetzt keine professionelle Steuerberatung. Alle Berechnungen sollten vor steuerlichen Entscheidungen
+                von einem Steuerberater überprüft werden.
+            </p>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        # Schreibe HTML-Datei
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        return output_file
+
 
 def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR"):
     """
@@ -502,26 +854,59 @@ def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR"
     return analyzer
 
 
-# BEISPIEL-VERWENDUNG
+# COMMAND-LINE INTERFACE
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Portfolio FIFO Analyzer - Automatische FIFO-Analyse für Aktien-Portfolios',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Beispiele:
+  %(prog)s examples/palantir_example.csv 35.00 EUR
+  %(prog)s csvs/meine_aktien.csv 150.50 USD --html output/report.html
+  %(prog)s examples/nvidia_example.csv 485.00 EUR --html
+
+Für weitere Informationen siehe README.md
+        """
+    )
+
+    parser.add_argument('csv_file', help='Pfad zur CSV-Datei mit Transaktionen')
+    parser.add_argument('current_price', type=float, nargs='?', default=None,
+                       help='Aktueller Aktienkurs (optional)')
+    parser.add_argument('currency', nargs='?', default='EUR',
+                       help='Währung (Standard: EUR)')
+    parser.add_argument('--html', nargs='?', const='output/portfolio_report.html',
+                       metavar='OUTPUT_FILE',
+                       help='Generiere HTML-Report (optional: Pfad angeben)')
+
+    args = parser.parse_args()
+
     print("🚀 PORTFOLIO FIFO ANALYZER")
     print("=" * 50)
-    
-    # HIER ANPASSEN:
-    csv_file = "examples/palantir_example.csv"  # Pfad zur CSV-Datei
-    current_price = 157.0  # Aktueller Kurs
-    currency = "EUR"  # Währung
-    
-    # Analyse starten
+
     try:
-        analyzer = analyze_portfolio_from_csv(csv_file, current_price, currency)
-        
+        # Analyse durchführen
+        analyzer = analyze_portfolio_from_csv(
+            args.csv_file,
+            args.current_price,
+            args.currency
+        )
+
+        # HTML-Report generieren falls gewünscht
+        if args.html:
+            report_file = analyzer.generate_html_report(args.html)
+            print(f"\n📄 HTML-Report erstellt: {report_file}")
+
         print(f"\n✅ Analyse abgeschlossen!")
-        print(f"📊 Zugriff auf Rohdaten: analyzer.analysis_results")
-        
+
     except FileNotFoundError:
-        print(f"❌ CSV-Datei nicht gefunden: {csv_file}")
+        print(f"\n❌ CSV-Datei nicht gefunden: {args.csv_file}")
         print("💡 Bitte den korrekten Pfad zur CSV-Datei angeben")
+        exit(1)
     except Exception as e:
-        print(f"❌ Fehler bei der Analyse: {e}")
+        print(f"\n❌ Fehler bei der Analyse: {e}")
         print("💡 Bitte CSV-Format und Daten überprüfen")
+        import traceback
+        traceback.print_exc()
+        exit(1)

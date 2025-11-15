@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  analyzer:
+    build: .
+    image: portfolio-fifo-analyzer:latest
+    container_name: portfolio-analyzer
+    volumes:
+      - ./csvs:/app/csvs
+      - ./output:/app/output
+      - ./examples:/app/examples
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Example usage:
+    # docker-compose run --rm analyzer examples/palantir_example.csv 35.00 EUR
+
+  webserver:
+    image: nginx:alpine
+    container_name: portfolio-webserver
+    ports:
+      - "8080:80"
+    volumes:
+      - ./output:/usr/share/nginx/html:ro
+    # Start with: docker-compose up -d webserver
+    # Access reports at: http://localhost:8080
