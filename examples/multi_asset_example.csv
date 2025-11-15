@@ -1,0 +1,10 @@
+Date,Type,Shares,Price,Amount,Tax,Company
+2024-01-10,Buy,100,10.00,1000.00,0.00,Palantir Technologies
+2024-01-15,Buy,50,380.50,19025.00,0.00,NVIDIA Corporation
+2024-02-05,Buy,25,155.00,3875.00,0.00,Apple Inc.
+2024-02-20,Sell,30,15.00,450.00,15.00,Palantir Technologies
+2024-03-10,Buy,30,420.00,12600.00,0.00,NVIDIA Corporation
+2024-03-15,Sell,10,400.00,4000.00,125.00,NVIDIA Corporation
+2024-04-01,Buy,20,165.00,3300.00,0.00,Apple Inc.
+2024-04-20,Sell,50,18.00,900.00,45.00,Palantir Technologies
+2024-05-10,Sell,15,175.00,2625.00,85.00,Apple Inc.
