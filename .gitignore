@@ -80,3 +80,9 @@ secrets.json
 # Lokale Umgebungsvariablen
 .env.local
 .env.production
+
+# Test Coverage
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/

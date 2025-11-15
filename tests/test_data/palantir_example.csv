@@ -1,0 +1,8 @@
+Date,Type,Shares,Price,Amount,Tax,RealizedGains,Company
+2023-01-10,Buy,100,10.00,1000.00,0.00,0.00,Palantir Technologies
+2023-03-15,Buy,50,12.00,600.00,0.00,0.00,Palantir Technologies
+2023-06-20,Buy,75,15.00,1125.00,0.00,0.00,Palantir Technologies
+2023-09-01,Sell,80,20.00,1600.00,120.00,780.00,Palantir Technologies
+2023-11-10,Buy,60,18.00,1080.00,0.00,0.00,Palantir Technologies
+2024-02-14,Sell,100,25.00,2500.00,225.00,1275.00,Palantir Technologies
+2024-04-01,Buy,40,22.00,880.00,0.00,0.00,Palantir Technologies

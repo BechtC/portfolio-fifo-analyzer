@@ -1,0 +1,5 @@
+Date,Type,Shares,Price,Amount,Tax,Company
+2024-01-15,Buy,10,50.00,500.00,0.00,TestCorp
+2024-02-20,Buy,15,55.00,825.00,0.00,TestCorp
+2024-03-10,Sell,8,60.00,480.00,12.00,TestCorp
+2024-04-05,Buy,5,58.00,290.00,0.00,TestCorp

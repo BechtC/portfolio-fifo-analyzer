@@ -40,7 +40,45 @@ class PortfolioFIFOAnalyzer:
         self._load_and_clean_data()
         self._perform_fifo_analysis()
         self._calculate_summary_stats()
-    
+
+    def _load_and_clean_data(self):
+        """
+        Lädt und bereinigt die CSV-Daten
+
+        TODO: Implementierung ausstehend
+        - CSV-Datei einlesen mit automatischer Trennzeichen-Erkennung
+        - Spaltennamen normalisieren (Deutsch/Englisch)
+        - Zahlenformate konvertieren (Komma → Punkt)
+        - Datumsformate parsen
+        - Firmenname extrahieren
+        """
+        pass
+
+    def _perform_fifo_analysis(self):
+        """
+        Führt die FIFO-Analyse durch
+
+        TODO: Implementierung ausstehend
+        - Transaktionen chronologisch sortieren
+        - FIFO-Logik anwenden (First-In-First-Out)
+        - Realisierte Gewinne/Verluste berechnen
+        - Portfolio-Positionen tracken
+        """
+        pass
+
+    def _calculate_summary_stats(self):
+        """
+        Berechnet die zusammenfassenden Statistiken
+
+        TODO: Implementierung ausstehend
+        - Gesamt-Investition berechnen
+        - Gesamt-Entnahmen berechnen
+        - Realisierte und unrealisierte Gewinne
+        - Rendite in Prozent
+        - Netto-Cashflow
+        """
+        pass
+
     def print_summary_report(self):
         """Detaillierter Zusammenfassungsbericht"""
         print(f"\n{'='*60}")
