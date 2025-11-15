@@ -1,0 +1,6 @@
+Date,Type,Shares,Price,Amount,Tax,Company
+2023-12-01,Buy,50,40.00,2000.00,0.00,TechCorp
+2025-03-15,Buy,30,45.00,1350.00,0.00,TechCorp
+2025-08-20,Buy,40,48.00,1920.00,0.00,TechCorp
+2025-11-01,Buy,20,50.00,1000.00,0.00,TechCorp
+2025-04-10,Sell,10,46.00,460.00,12.00,TechCorp

@@ -26,10 +26,11 @@ class PortfolioFIFOAnalyzer:
     Automatische FIFO-Analyse für Portfolio-CSVs
     """
     
-    def __init__(self, csv_file_path, current_price=None, currency="EUR"):
+    def __init__(self, csv_file_path, current_price=None, currency="EUR", benchmark_return=None):
         self.csv_file_path = csv_file_path
         self.current_price = current_price
         self.currency = currency
+        self.benchmark_return = benchmark_return  # Benchmark-Rendite in % (z.B. 15.5 für 15.5%)
         self.company_name = ""
         self.raw_data = None
         self.transactions = None
@@ -428,6 +429,102 @@ class PortfolioFIFOAnalyzer:
         # Akkumuliere Gesamt-Dividenden (brutto)
         self.total_dividends += amount
 
+    def get_tax_optimization_suggestions(self, target_shares=None):
+        """
+        Schlägt steueroptimale Verkaufsstrategien vor
+
+        Args:
+            target_shares: Anzahl der zu verkaufenden Aktien (optional)
+
+        Returns:
+            dict: Steueroptimierungs-Vorschläge
+        """
+        from datetime import datetime, timedelta
+
+        if not self.portfolio or not self.current_price:
+            return {
+                'suggestions': [],
+                'total_shares_available': 0,
+                'message': 'Keine Portfolio-Positionen oder kein aktueller Kurs verfügbar'
+            }
+
+        today = datetime.now()
+        suggestions = []
+
+        # Analysiere jede Position
+        for pos in self.portfolio:
+            purchase_date = pos['date']
+            shares = pos['shares']
+            cost_basis = pos['cost_basis']
+            purchase_price = pos['price']
+
+            # Berechne Haltedauer
+            if isinstance(purchase_date, str):
+                purchase_date = pd.to_datetime(purchase_date)
+
+            holding_period_days = (today - purchase_date).days
+            holding_period_years = holding_period_days / 365.25
+
+            # Aktuelle Bewertung
+            current_value = shares * self.current_price
+            unrealized_gain = current_value - cost_basis
+            unrealized_gain_pct = (unrealized_gain / cost_basis * 100) if cost_basis > 0 else 0
+
+            # Steuer-Status (Deutschland: >1 Jahr = steuerfrei)
+            tax_free = holding_period_years >= 1.0
+            days_until_tax_free = max(0, 365 - holding_period_days) if not tax_free else 0
+
+            # Steuer-Schätzung (vereinfacht: 26.375% Abgeltungssteuer)
+            estimated_tax = unrealized_gain * 0.26375 if not tax_free and unrealized_gain > 0 else 0
+
+            suggestions.append({
+                'purchase_date': purchase_date.strftime('%d.%m.%Y') if hasattr(purchase_date, 'strftime') else str(purchase_date),
+                'shares': shares,
+                'purchase_price': purchase_price,
+                'cost_basis': cost_basis,
+                'current_value': current_value,
+                'unrealized_gain': unrealized_gain,
+                'unrealized_gain_pct': unrealized_gain_pct,
+                'holding_period_days': holding_period_days,
+                'holding_period_years': holding_period_years,
+                'tax_free': tax_free,
+                'days_until_tax_free': days_until_tax_free,
+                'estimated_tax': estimated_tax,
+                'recommendation': self._get_tax_recommendation(tax_free, unrealized_gain, days_until_tax_free)
+            })
+
+        # Sortiere nach Steuer-Optimierung
+        # 1. Priorität: Steuerfreie Positionen mit Gewinn
+        # 2. Priorität: Positionen kurz vor Steuerfreiheit
+        # 3. Priorität: Positionen mit Verlust (Tax-Loss Harvesting)
+        suggestions.sort(key=lambda x: (
+            not x['tax_free'],  # Steuerfreie zuerst
+            x['estimated_tax'],  # Dann nach Steuer
+            -x['unrealized_gain_pct']  # Dann nach Rendite
+        ))
+
+        total_shares = sum(pos['shares'] for pos in self.portfolio)
+
+        return {
+            'suggestions': suggestions,
+            'total_shares_available': total_shares,
+            'target_shares': target_shares,
+            'message': f'{len(suggestions)} Positionen analysiert'
+        }
+
+    def _get_tax_recommendation(self, tax_free, unrealized_gain, days_until_tax_free):
+        """Generiert Steuer-Empfehlung für Position"""
+        if tax_free and unrealized_gain > 0:
+            return "✅ OPTIMAL - Steuerfrei verkaufbar"
+        elif tax_free and unrealized_gain <= 0:
+            return "⚠️ STEUERFREI - Aber im Verlust"
+        elif days_until_tax_free <= 30 and unrealized_gain > 0:
+            return f"⏳ WARTEN - In {days_until_tax_free} Tagen steuerfrei"
+        elif unrealized_gain < 0:
+            return "💡 TAX-LOSS - Verlust zum Verrechnen"
+        else:
+            return f"🔴 STEUERPFLICHTIG - {days_until_tax_free} Tage bis steuerfrei"
+
     def _calculate_summary_stats(self):
         """
         Berechnet die zusammenfassenden Statistiken
@@ -505,7 +602,12 @@ class PortfolioFIFOAnalyzer:
             'net_dividends': float(net_dividends),
             'dividend_count': len(self.dividend_transactions),
             'total_gains_incl_dividends': float(total_gains_incl_div),
-            'total_return_incl_dividends_pct': float(total_return_incl_div_pct)
+            'total_return_incl_dividends_pct': float(total_return_incl_div_pct),
+            # Benchmark-Vergleich
+            'benchmark_return': float(self.benchmark_return) if self.benchmark_return is not None else None,
+            'alpha': float(total_return_pct - self.benchmark_return) if self.benchmark_return is not None else None,
+            'alpha_incl_dividends': float(total_return_incl_div_pct - self.benchmark_return) if self.benchmark_return is not None else None,
+            'outperformance': float(total_return_pct - self.benchmark_return) > 0 if self.benchmark_return is not None else None
         }
 
     def print_summary_report(self):
@@ -539,6 +641,56 @@ class PortfolioFIFOAnalyzer:
         print(f"   Gesamtrendite:     {self.analysis_results['total_return_pct']:,.1f}%")
         if self.analysis_results['dividend_count'] > 0:
             print(f"   Inkl. Dividenden:  {self.analysis_results['total_return_incl_dividends_pct']:,.1f}%")
+
+        # Benchmark-Vergleich anzeigen, falls vorhanden
+        if self.analysis_results['benchmark_return'] is not None:
+            print(f"\n📊 BENCHMARK-VERGLEICH:")
+            print(f"   Benchmark-Rendite: {self.analysis_results['benchmark_return']:,.1f}%")
+            alpha = self.analysis_results['alpha']
+            alpha_symbol = "🟢" if alpha > 0 else "🔴" if alpha < 0 else "⚪"
+            print(f"   {alpha_symbol} Alpha:             {alpha:+,.1f}%")
+            if self.analysis_results['dividend_count'] > 0:
+                alpha_div = self.analysis_results['alpha_incl_dividends']
+                alpha_div_symbol = "🟢" if alpha_div > 0 else "🔴" if alpha_div < 0 else "⚪"
+                print(f"   {alpha_div_symbol} Alpha (inkl. Div.): {alpha_div:+,.1f}%")
+            perf_status = "Outperformance" if self.analysis_results['outperformance'] else "Underperformance"
+            print(f"   Status:            {perf_status}")
+
+    def print_tax_optimization_report(self):
+        """Zeigt Steuer-Optimierungs-Vorschläge an"""
+        tax_opt = self.get_tax_optimization_suggestions()
+
+        if not tax_opt['suggestions']:
+            print(f"\n💡 STEUER-OPTIMIERUNG:")
+            print(f"   {tax_opt['message']}")
+            return
+
+        print(f"\n💡 STEUER-OPTIMIERUNG:")
+        print(f"   {tax_opt['message']}")
+        print(f"   Verfügbare Aktien: {tax_opt['total_shares_available']:.0f}")
+        print(f"\n   Verkaufsempfehlungen (nach Priorität):")
+        print(f"   {'-' * 80}")
+
+        for i, sug in enumerate(tax_opt['suggestions'][:5], 1):  # Zeige Top 5
+            print(f"\n   #{i} | Gekauft: {sug['purchase_date']} | {sug['shares']:.0f} Aktien @ {sug['purchase_price']:.2f} {self.currency}")
+            print(f"       Haltedauer: {sug['holding_period_years']:.1f} Jahre ({sug['holding_period_days']} Tage)")
+            print(f"       Aktueller Wert: {sug['current_value']:,.2f} {self.currency}")
+            print(f"       Unrealisierter Gewinn: {sug['unrealized_gain']:+,.2f} {self.currency} ({sug['unrealized_gain_pct']:+.1f}%)")
+            if sug['estimated_tax'] > 0:
+                print(f"       Geschätzte Steuer: {sug['estimated_tax']:,.2f} {self.currency}")
+            print(f"       {sug['recommendation']}")
+
+        if len(tax_opt['suggestions']) > 5:
+            print(f"\n   ... und {len(tax_opt['suggestions']) - 5} weitere Positionen")
+
+        # Zusammenfassung
+        total_tax_free_shares = sum(s['shares'] for s in tax_opt['suggestions'] if s['tax_free'])
+        total_tax_free_value = sum(s['current_value'] for s in tax_opt['suggestions'] if s['tax_free'])
+        total_estimated_tax = sum(s['estimated_tax'] for s in tax_opt['suggestions'])
+
+        print(f"\n   📊 ZUSAMMENFASSUNG:")
+        print(f"       Steuerfreie Aktien: {total_tax_free_shares:.0f} (Wert: {total_tax_free_value:,.2f} {self.currency})")
+        print(f"       Potenzielle Steuer (bei Verkauf aller): {total_estimated_tax:,.2f} {self.currency}")
 
     def generate_html_report(self, output_file="output/portfolio_report.html"):
         """
@@ -872,6 +1024,22 @@ class PortfolioFIFOAnalyzer:
                 <div class="metric-subtext" style="color: rgba(255,255,255,0.8);">Mit Dividenden</div>
             </div>"""
 
+        # Benchmark-Metriken hinzufügen, falls vorhanden
+        if stats['benchmark_return'] is not None:
+            alpha_color = '#10b981' if stats['alpha'] > 0 else '#ef4444' if stats['alpha'] < 0 else '#666666'
+            html_content += f"""
+            <div class="metric-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="metric-label">📊 Benchmark-Rendite</div>
+                <div class="metric-value" style="color: white;">{stats['benchmark_return']:,.1f}%</div>
+                <div class="metric-subtext" style="color: rgba(255,255,255,0.8);">Vergleichswert</div>
+            </div>
+
+            <div class="metric-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                <div class="metric-label">🎯 Alpha</div>
+                <div class="metric-value" style="color: {alpha_color}; font-weight: bold;">{stats['alpha']:+,.1f}%</div>
+                <div class="metric-subtext" style="color: rgba(255,255,255,0.8);">{'Outperformance' if stats['outperformance'] else 'Underperformance'}</div>
+            </div>"""
+
         html_content += """
         </div>
 
@@ -1024,8 +1192,20 @@ class PortfolioFIFOAnalyzer:
         if stats['dividend_count'] > 0:
             data_rows.append(("Rendite inkl. Div. (%)", stats['total_return_incl_dividends_pct']))
 
+        # Benchmark-Vergleich hinzufügen, falls vorhanden
+        if stats['benchmark_return'] is not None:
+            data_rows.extend([
+                ("", ""),
+                ("BENCHMARK-VERGLEICH", ""),
+                ("Benchmark-Rendite (%)", stats['benchmark_return']),
+                ("Alpha (%)", stats['alpha']),
+            ])
+            if stats['dividend_count'] > 0:
+                data_rows.append(("Alpha inkl. Div. (%)", stats['alpha_incl_dividends']))
+            data_rows.append(("Status", "Outperformance" if stats['outperformance'] else "Underperformance"))
+
         for label, value in data_rows:
-            if label in ["INVESTITIONS-ÜBERSICHT", "REALISIERTE GEWINNE", "UNREALISIERTE GEWINNE", "DIVIDENDEN", "GESAMTERGEBNIS"]:
+            if label in ["INVESTITIONS-ÜBERSICHT", "REALISIERTE GEWINNE", "UNREALISIERTE GEWINNE", "DIVIDENDEN", "GESAMTERGEBNIS", "BENCHMARK-VERGLEICH"]:
                 ws_summary[f'A{row}'] = label
                 ws_summary[f'A{row}'].font = Font(bold=True)
             elif label:
@@ -1237,6 +1417,16 @@ class PortfolioFIFOAnalyzer:
         if stats['dividend_count'] > 0:
             summary_data.append(['Rendite inkl. Div.', f"{stats['total_return_incl_dividends_pct']:.1f}%"])
 
+        # Benchmark-Vergleich hinzufügen, falls vorhanden
+        if stats['benchmark_return'] is not None:
+            summary_data.extend([
+                ['Benchmark-Rendite', f"{stats['benchmark_return']:.1f}%"],
+                ['Alpha', f"{stats['alpha']:+.1f}%"],
+            ])
+            if stats['dividend_count'] > 0:
+                summary_data.append(['Alpha (inkl. Div.)', f"{stats['alpha_incl_dividends']:+.1f}%"])
+            summary_data.append(['Status', 'Outperformance' if stats['outperformance'] else 'Underperformance'])
+
         summary_table = Table(summary_data, colWidths=[10*cm, 6*cm])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f77b4')),
@@ -1340,7 +1530,7 @@ class PortfolioFIFOAnalyzer:
         return output_file
 
 
-def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR"):
+def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR", benchmark_return=None):
     """
     Hauptfunktion zur Portfolio-Analyse
 
@@ -1348,11 +1538,12 @@ def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR"
         csv_file_path (str): Pfad zur CSV-Datei
         current_price (float, optional): Aktueller Aktienkurs
         currency (str): Währung (Standard: EUR)
+        benchmark_return (float, optional): Benchmark-Rendite in % für Vergleich
 
     Returns:
         PortfolioFIFOAnalyzer: Analyzer-Objekt mit allen Ergebnissen
     """
-    analyzer = PortfolioFIFOAnalyzer(csv_file_path, current_price, currency)
+    analyzer = PortfolioFIFOAnalyzer(csv_file_path, current_price, currency, benchmark_return)
     analyzer.print_summary_report()
     return analyzer
 
@@ -1789,6 +1980,11 @@ Für weitere Informationen siehe README.md
     parser.add_argument('--pdf', nargs='?', const='output/portfolio_report.pdf',
                        metavar='OUTPUT_FILE',
                        help='Generiere PDF-Report (optional: Pfad angeben)')
+    parser.add_argument('--benchmark', type=float, default=None,
+                       metavar='RETURN_PCT',
+                       help='Benchmark-Rendite in %% für Vergleich (z.B. 15.5 für 15.5%%)')
+    parser.add_argument('--tax-opt', action='store_true',
+                       help='Zeige Steuer-Optimierungs-Vorschläge')
 
     args = parser.parse_args()
 
@@ -1800,7 +1996,8 @@ Für weitere Informationen siehe README.md
         analyzer = analyze_portfolio_from_csv(
             args.csv_file,
             args.current_price,
-            args.currency
+            args.currency,
+            args.benchmark
         )
 
         # HTML-Report generieren falls gewünscht
@@ -1817,6 +2014,10 @@ Für weitere Informationen siehe README.md
         if args.pdf:
             report_file = analyzer.generate_pdf_report(args.pdf)
             print(f"\n📑 PDF-Report erstellt: {report_file}")
+
+        # Steuer-Optimierungs-Vorschläge anzeigen falls gewünscht
+        if args.tax_opt:
+            analyzer.print_tax_optimization_report()
 
         print(f"\n✅ Analyse abgeschlossen!")
 
