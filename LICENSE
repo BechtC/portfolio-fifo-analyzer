@@ -1,0 +1,47 @@
+MIT License
+
+Copyright (c) 2025 Portfolio FIFO Analyzer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Rechtlicher Hinweis
+
+**Wichtiger Haftungsausschluss:**
+
+Dieses Tool dient ausschließlich zu Informations- und Analysezwecken. Es stellt keine Anlageberatung, Steuerberatung oder professionelle Finanzberatung dar.
+
+### Verwendung auf eigene Verantwortung:
+
+1. **Keine Gewähr für Richtigkeit**: Die Berechnungen und Analysen werden ohne Gewähr für deren Richtigkeit, Vollständigkeit oder Aktualität zur Verfügung gestellt.
+
+2. **Keine Steuerberatung**: Das Tool ersetzt keine professionelle Steuerberatung. Alle steuerlichen Berechnungen sollten von einem qualifizierten Steuerberater überprüft werden.
+
+3. **Eigenverantwortliche Überprüfung**: Nutzer sind selbst dafür verantwortlich, alle Berechnungen und Ergebnisse zu überprüfen und zu validieren.
+
+4. **Keine Haftung**: Die Autoren und Beitragenden übernehmen keine Haftung für Schäden, die durch die Verwendung dieses Tools entstehen könnten.
+
+### FIFO-Berechnungen:
+
+Die FIFO-Berechnungen (First-In-First-Out) erfolgen nach bestem Wissen und Gewissen, können aber je nach individueller Situation und aktueller Rechtslage variieren. Konsultieren Sie immer einen Steuerexperten für steuerliche Entscheidungen.
+
+### Datenschutz:
+
+- Das Tool verarbeitet nur lokal bereitgestellte CSV-Dateien
+- Keine Daten werden an externe Server übertragen
+- Nutzer sind selbst für den Schutz ihrer Finanzdaten verantwortlich

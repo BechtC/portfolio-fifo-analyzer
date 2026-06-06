@@ -1,0 +1,26 @@
+# Portfolio FIFO Analyzer - Python Dependencies
+# =====================================================
+# 
+# Installation: pip install -r requirements.txt
+#
+# Core Requirements:
+# - pandas: Datenverarbeitung und CSV-Handling
+# - numpy: Numerische Berechnungen
+# - matplotlib: Basis-Plotting (falls Plotly nicht verfügbar)
+# - seaborn: Erweiterte Visualisierungen
+# - plotly: Interaktive Charts (optional, für erweiterte Features)
+#
+# Kompatibilität: Python 3.7+
+
+# === KERN-ABHÄNGIGKEITEN (ERFORDERLICH) ===
+pandas>=1.3.0
+numpy>=1.21.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# === INTERAKTIVE CHARTS (EMPFOHLEN) ===
+plotly>=5.0.0
+kaleido>=0.2.1
+
+# === DATUM/ZEIT VERARBEITUNG ===
+python-dateutil>=2.8.0

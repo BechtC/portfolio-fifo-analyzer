@@ -1,0 +1,12 @@
+datetime;date;time;price;shares;amount;tax;fee;realizedgains;type;broker;assettype;identifier;wkn;originalcurrency;currency;fxrate;holding;holdingname;holdingnickname;exchange;avgholdingperiod
+2020-10-02T08:00:00.000Z;02.10.2020;10:00:00;7,73;200;1546;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2020-11-27T14:30:00.000Z;27.11.2020;16:30:00;25,00;50;1250;0;0;863,50;Sell;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;74040785000
+2023-03-27T09:15:00.000Z;27.03.2023;11:15:00;7,47;175;1307,25;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2024-03-08T10:30:00.000Z;08.03.2024;12:30:00;24,48;50;1224;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2024-03-08T11:00:00.000Z;08.03.2024;13:00:00;23,80;50;1190;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2024-05-08T09:45:00.000Z;08.05.2024;11:45:00;19,95;60;1197;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2024-05-13T14:20:00.000Z;13.05.2024;16:20:00;19,06;75;1429,50;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2024-12-03T15:30:00.000Z;03.12.2024;17:30:00;66,00;110;7260;1436,90;0;6410,14;Sell;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;106553510294
+2025-04-04T12:46:00.000Z;04.04.2025;14:46:00;66,66;35;2333,10;0;0;;Buy;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;
+2025-06-11T09:40:00.000Z;11.06.2025;11:40:00;115,46;85;9814,10;2417,42;0;9168,95;Sell;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;106553510294
+2025-07-31T14:04:00.000Z;31.07.2025;16:04:00;141,00;35;4935;1232,26;0;4673,58;Sell;smartbroker_plus;Security;US69608A1088;A2QA4J;;EUR;;;Palantir Technologies;;;74040785000

@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # === HAUPTSERVICE: PORTFOLIO ANALYZER ===
+  analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+    
+    image: portfolio-analyzer:latest
+    container_name: portfolio_analyzer
+    
+    # === VOLUMES ===
+    volumes:
+      - type: bind
+        source: ./csvs
+        target: /app/data
+        read_only: true
+      
+      - type: bind
+        source: ./output
+        target: /app/output
+      
+      - temp_data:/tmp
+    
+    # === UMGEBUNGSVARIABLEN ===
+    environment:
+      - MPLBACKEND=Agg
+      - PYTHONUNBUFFERED=1
+      - TZ=Europe/Berlin
+    
+    # === NETZWERK ===
+    networks:
+      - portfolio_network
+    
+    # === RESTART POLICY ===
+    restart: "no"
+    
+    # === RESOURCE LIMITS ===
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # === COMMAND OVERRIDE ===
+    command: ["--help"]
+
+  # === OPTIONAL: WEB-SERVER FÜR HTML-REPORTS ===
+  webserver:
+    image: nginx:alpine
+    container_name: portfolio_webserver
+    
+    # === PORTS ===
+    ports:
+      - "8080:80"
+    
+    # === VOLUMES ===
+    volumes:
+      - type: bind
+        source: ./output
+        target: /usr/share/nginx/html
+        read_only: true
+    
+    # === ABHÄNGIGKEITEN ===
+    depends_on:
+      - analyzer
+    
+    # === NETZWERK ===
+    networks:
+      - portfolio_network
+    
+    # === RESTART POLICY ===
+    restart: unless-stopped
+
+# === VOLUMES ===
+volumes:
+  temp_data:
+    driver: local
+
+# === NETZWERKE ===
+networks:
+  portfolio_network:
+    driver: bridge
+    name: portfolio_net
