@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktien Re-Entry & Steuer Rechner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex items-center justify-center">
+
+    <div class="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+        
+        <!-- Left Side: Input Form -->
+        <div class="w-full md:w-1/2 p-6 md:p-8 bg-slate-50 border-r border-slate-200">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Trade-Daten</h2>
+            
+            <form id="calcForm" class="space-y-4">
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Aktienname / Kürzel (optional)</label>
+                    <input type="text" id="stockName" placeholder="z.B. AAPL oder Apple" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Kaufkurs (€)</label>
+                        <input type="number" id="buyPrice" value="112" step="0.01" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Verkaufskurs (€)</label>
+                        <input type="number" id="sellPrice" value="424" step="0.01" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Stückzahl</label>
+                    <input type="number" id="shares" value="5" step="0.0001" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Gebühren Kauf (€)</label>
+                        <input type="number" id="feeBuy" value="5" step="0.01" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Gebühren Verkauf (€)</label>
+                        <input type="number" id="feeSell" value="5" step="0.01" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-200 mt-2">
+                    <h3 class="text-sm font-semibold text-slate-800 mb-3">Steuerliche Situation (Deutschland)</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Noch freier Freibetrag (€)</label>
+                            <input type="number" id="allowance" value="0" step="1" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="z.B. 1000">
+                            <p class="text-xs text-slate-400 mt-1">Sparer-Pauschbetrag, der für diesen Trade noch genutzt werden kann.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-600 mb-1">Kirchensteuer</label>
+                            <select id="churchTax" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                <option value="0">Keine (0%)</option>
+                                <option value="0.08">8% (Bayern, BaWü)</option>
+                                <option value="0.09">9% (Restliche BL)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="w-full md:w-1/2 p-6 md:p-8 bg-blue-600 text-white flex flex-col justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-blue-50 mb-6">Auswertung</h2>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="flex justify-between items-center pb-2 border-b border-blue-500/50">
+                        <span class="text-blue-200">Verkaufserlös (brutto)</span>
+                        <span id="resRevenue" class="font-semibold">0,00 €</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-blue-500/50">
+                        <span class="text-blue-200">Gewinn (vor Steuern)</span>
+                        <span id="resProfit" class="font-semibold text-green-300">0,00 €</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-blue-500/50">
+                        <span class="text-blue-200">Abzuführende Steuern</span>
+                        <span id="resTaxes" class="font-semibold text-red-300">0,00 €</span>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-blue-500/50">
+                        <span class="text-blue-200">Nettokapital nach Verkauf</span>
+                        <span id="resNetCapital" class="font-bold text-xl">0,00 €</span>
+                    </div>
+                </div>
+
+                <div class="bg-blue-700 rounded-xl p-5 shadow-inner mt-6 border border-blue-500">
+                    <p class="text-sm text-blue-200 mb-1">Damit sich der Trade lohnt, musst du einsteigen unter:</p>
+                    <div class="text-4xl font-black text-white tracking-tight mb-2" id="resBreakEven">
+                        0,00 €
+                    </div>
+                    <p class="text-sm text-blue-200">
+                        Das entspricht einem Kursrückgang von mind. <span id="resDrop" class="font-bold text-white bg-blue-800 px-2 py-1 rounded">0%</span> vom Verkaufskurs.
+                    </p>
+                </div>
+                
+                <div class="mt-4 text-xs text-blue-300 leading-relaxed bg-blue-800/30 p-3 rounded-lg">
+                    <strong>Warum?</strong> Nach dem Verkauf hast du durch die Steuer weniger Geld zur Verfügung. Um dieselbe Stückzahl wie vorher zu kaufen, muss der Kurs exakt um die Höhe der gezahlten Steuern und Gebühren (pro Aktie) gefallen sein. Kaufst du teurer, machst du ein Verlustgeschäft gegenüber dem simplen "Halten".
+                </div>
+
+                <button type="button" onclick="saveToHistory()" class="mt-6 w-full bg-white text-blue-700 hover:bg-blue-50 font-bold py-3 px-4 rounded-xl shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h-2v5.586l-1.293-1.293zM9 18a1 1 0 01-1-1v-2a1 1 0 112 0v2a1 1 0 01-1 1z" />
+                    </svg>
+                    In Historie speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Section -->
+    <div id="historySection" class="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden mt-8 hidden">
+        <div class="p-6 md:p-8 border-b border-slate-200 flex justify-between items-center flex-wrap gap-4">
+            <h2 class="text-2xl font-bold text-slate-800">Trade-Historie</h2>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="document.getElementById('csvUpload').click()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    CSV Import
+                </button>
+                <input type="file" id="csvUpload" accept=".csv" class="hidden" onchange="importCSV(event)">
+                <button onclick="exportCSV()" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    CSV Export
+                </button>
+                <button onclick="clearHistory()" class="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors shadow-sm">
+                    Leeren
+                </button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                        <th class="px-6 py-4 font-medium">Aktie</th>
+                        <th class="px-6 py-4 font-medium">Kauf / Verkauf</th>
+                        <th class="px-6 py-4 font-medium">Stück</th>
+                        <th class="px-6 py-4 font-medium text-right">Netto-Gewinn</th>
+                        <th class="px-6 py-4 font-medium text-right">Re-Entry Kurs</th>
+                        <th class="px-6 py-4 font-medium text-right">Nötiger Drop</th>
+                        <th class="px-6 py-4 font-medium text-center">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody" class="text-slate-700 text-sm divide-y divide-slate-100">
+                    <!-- History rows will be generated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentCalculation = {};
+        let tradeHistory = [];
+
+        function calculate() {
+            // Get values from inputs
+            const stockNameEl = document.getElementById('stockName');
+            const stockName = stockNameEl && stockNameEl.value ? stockNameEl.value : "Unbekannt";
+            
+            const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+            const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+            const shares = parseFloat(document.getElementById('shares').value) || 0;
+            const feeBuy = parseFloat(document.getElementById('feeBuy').value) || 0;
+            const feeSell = parseFloat(document.getElementById('feeSell').value) || 0;
+            const allowance = parseFloat(document.getElementById('allowance').value) || 0;
+            const churchTaxRate = parseFloat(document.getElementById('churchTax').value) || 0;
+
+            // 1. Calculations logic
+            const investedCapital = (buyPrice * shares) + feeBuy;
+            const grossRevenue = (sellPrice * shares) - feeSell;
+            const profit = grossRevenue - investedCapital;
+
+            let taxesToPay = 0;
+            
+            if (profit > 0) {
+                // Apply tax allowance
+                const taxableProfit = Math.max(0, profit - allowance);
+                
+                if (taxableProfit > 0) {
+                    // German Tax Calculation Formula
+                    // Kapitalertragsteuer = 25%
+                    // Soli = 5.5% der KapESt
+                    // Kirchensteuer = x% der KapESt
+                    // Base tax rate calculation considering church tax reduction
+                    // e = k / (1 + 0.25 * k_w) * 0.25
+                    const baseRate = 0.25 / (1 + (0.25 * churchTaxRate));
+                    const kapEst = taxableProfit * baseRate;
+                    const soli = kapEst * 0.055;
+                    const kirchenSteuer = kapEst * churchTaxRate;
+                    
+                    taxesToPay = kapEst + soli + kirchenSteuer;
+                }
+            }
+
+            const netCapital = grossRevenue - taxesToPay;
+
+            // Calculate Break-Even Re-Entry Price
+            // To get exactly 'shares' back, you need to buy at (netCapital - feeRebuy) / shares
+            // We assume the rebuy fee is the same as the initial buy fee
+            const feeRebuy = feeBuy; 
+            let breakEvenPrice = 0;
+            let requiredDropPerc = 0;
+
+            if (shares > 0) {
+                breakEvenPrice = (netCapital - feeRebuy) / shares;
+                
+                if (sellPrice > 0) {
+                    requiredDropPerc = ((sellPrice - breakEvenPrice) / sellPrice) * 100;
+                }
+            }
+
+            // Formatters
+            const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+            const perc = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+            // Update DOM
+            document.getElementById('resRevenue').innerText = eur.format(grossRevenue);
+            
+            const elProfit = document.getElementById('resProfit');
+            elProfit.innerText = eur.format(profit);
+            elProfit.className = profit >= 0 ? "font-semibold text-green-300" : "font-semibold text-red-300";
+
+            document.getElementById('resTaxes').innerText = eur.format(taxesToPay);
+            document.getElementById('resNetCapital').innerText = eur.format(netCapital);
+
+            if (profit <= 0) {
+                // If loss, break-even is basically just covering fees
+                document.getElementById('resBreakEven').innerText = eur.format(breakEvenPrice);
+                document.getElementById('resDrop').innerText = perc.format(requiredDropPerc) + "%";
+            } else {
+                document.getElementById('resBreakEven').innerText = eur.format(breakEvenPrice);
+                document.getElementById('resDrop').innerText = perc.format(requiredDropPerc) + "%";
+            }
+
+            // Save state for history feature
+            currentCalculation = {
+                id: Date.now().toString(),
+                date: new Date().toLocaleDateString('de-DE'),
+                stockName,
+                buyPrice,
+                sellPrice,
+                shares,
+                feeBuy,
+                feeSell,
+                allowance,
+                churchTaxRate,
+                profitNetto: profit - taxesToPay,
+                breakEvenPrice,
+                requiredDropPerc
+            };
+        }
+
+        // Add event listeners to all inputs to recalculate on change
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+
+        // --- History & CSV Logic ---
+        function saveToHistory() {
+            tradeHistory.push({...currentCalculation});
+            saveHistoryData();
+            renderHistory();
+        }
+
+        function deleteHistoryEntry(id) {
+            tradeHistory = tradeHistory.filter(t => t.id !== id);
+            saveHistoryData();
+            renderHistory();
+        }
+
+        function clearHistory() {
+            if (confirm("Möchtest du die Historie wirklich komplett löschen?")) {
+                tradeHistory = [];
+                saveHistoryData();
+                renderHistory();
+            }
+        }
+
+        function saveHistoryData() {
+            localStorage.setItem('tradeHistory', JSON.stringify(tradeHistory));
+        }
+
+        function loadHistoryData() {
+            const saved = localStorage.getItem('tradeHistory');
+            if (saved) {
+                try {
+                    tradeHistory = JSON.parse(saved);
+                } catch (e) {
+                    tradeHistory = [];
+                }
+            }
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const section = document.getElementById('historySection');
+            const tbody = document.getElementById('historyTableBody');
+            
+            if (tradeHistory.length === 0) {
+                section.classList.add('hidden');
+                section.classList.remove('flex', 'flex-col');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            section.classList.add('flex', 'flex-col');
+            tbody.innerHTML = '';
+            
+            const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+            const perc = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+            tradeHistory.forEach(trade => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-800">${trade.stockName}</div>
+                        <div class="text-xs text-slate-400">${trade.date}</div>
+                    </td>
+                    <td class="px-6 py-4">${eur.format(trade.buyPrice)} / ${eur.format(trade.sellPrice)}</td>
+                    <td class="px-6 py-4">${trade.shares}</td>
+                    <td class="px-6 py-4 text-right font-semibold ${trade.profitNetto >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${eur.format(trade.profitNetto)}
+                    </td>
+                    <td class="px-6 py-4 text-right font-medium text-blue-600">${eur.format(trade.breakEvenPrice)}</td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${trade.requiredDropPerc > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                            -${perc.format(trade.requiredDropPerc)}%
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="deleteHistoryEntry('${trade.id}')" class="text-red-400 hover:text-red-600 transition-colors p-1" title="Eintrag löschen">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportCSV() {
+            if (tradeHistory.length === 0) return;
+            
+            // Header (German friendly)
+            let csvContent = "Datum;Aktienname;Kaufkurs;Verkaufskurs;Stueckzahl;Kaufgebuehren;Verkaufsgebuehren;Freibetrag;KirchensteuerRate;NettoGewinn;ReEntryKurs;DropProzent\n";
+            
+            // Rows
+            tradeHistory.forEach(t => {
+                const row = [
+                    t.date,
+                    t.stockName.replace(/;/g, ','), // semicolons escape to prevent shifting
+                    t.buyPrice.toString().replace('.', ','),
+                    t.sellPrice.toString().replace('.', ','),
+                    t.shares.toString().replace('.', ','),
+                    t.feeBuy.toString().replace('.', ','),
+                    t.feeSell.toString().replace('.', ','),
+                    t.allowance.toString().replace('.', ','),
+                    t.churchTaxRate.toString().replace('.', ','),
+                    t.profitNetto.toString().replace('.', ','),
+                    t.breakEvenPrice.toString().replace('.', ','),
+                    t.requiredDropPerc.toString().replace('.', ',')
+                ].join(";");
+                csvContent += row + "\n";
+            });
+
+            // Trigger Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Trade_Historie_ReEntry.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split('\n');
+                let importedCount = 0;
+                
+                // Start from i=1 to skip header
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const cols = line.split(';');
+                    if (cols.length >= 12) {
+                        const newTrade = {
+                            id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+                            date: cols[0],
+                            stockName: cols[1],
+                            buyPrice: parseFloat(cols[2].replace(',', '.')) || 0,
+                            sellPrice: parseFloat(cols[3].replace(',', '.')) || 0,
+                            shares: parseFloat(cols[4].replace(',', '.')) || 0,
+                            feeBuy: parseFloat(cols[5].replace(',', '.')) || 0,
+                            feeSell: parseFloat(cols[6].replace(',', '.')) || 0,
+                            allowance: parseFloat(cols[7].replace(',', '.')) || 0,
+                            churchTaxRate: parseFloat(cols[8].replace(',', '.')) || 0,
+                            profitNetto: parseFloat(cols[9].replace(',', '.')) || 0,
+                            breakEvenPrice: parseFloat(cols[10].replace(',', '.')) || 0,
+                            requiredDropPerc: parseFloat(cols[11].replace(',', '.')) || 0
+                        };
+                        tradeHistory.push(newTrade);
+                        importedCount++;
+                    }
+                }
+                
+                if (importedCount > 0) {
+                    saveHistoryData();
+                    renderHistory();
+                    alert(importedCount + " Trades erfolgreich importiert!");
+                } else {
+                    alert("Keine gültigen Daten gefunden. Bitte stelle sicher, dass die Datei im Format der exportierten CSV ist.");
+                }
+                event.target.value = ''; // Reset file input
+            };
+            reader.readAsText(file);
+        }
+
+        // Initial calculation and load history on page load
+        loadHistoryData();
+        calculate();
+    </script>
+</body>
+</html>

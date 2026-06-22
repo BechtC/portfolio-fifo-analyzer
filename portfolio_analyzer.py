@@ -2472,12 +2472,34 @@ def analyze_portfolio_from_csv(csv_file_path, current_price=None, currency="EUR"
     return analyzers
 
 
+def find_latest_csv(csv_dir="csvs"):
+    """
+    Ermittelt die zuletzt geänderte CSV-Datei im angegebenen Ordner.
+
+    Args:
+        csv_dir (str): Ordner mit den Eingangs-CSVs
+
+    Returns:
+        str: Pfad zur neuesten CSV-Datei
+
+    Raises:
+        FileNotFoundError: Wenn keine CSV-Datei im Ordner liegt
+    """
+    csv_files = [p for p in Path(csv_dir).glob("*.csv")]
+    if not csv_files:
+        raise FileNotFoundError(f"Keine CSV-Datei in '{csv_dir}/' gefunden")
+
+    latest = max(csv_files, key=lambda p: p.stat().st_mtime)
+    return str(latest)
+
+
 # BEISPIEL-VERWENDUNG
 if __name__ == "__main__":
     print("PORTFOLIO FIFO ANALYZER - Multi-Asset")
     print("=" * 50)
 
-    csv_file = "csvs/Chris-20260606-153648.csv"
+    csv_file = find_latest_csv()
+    print(f"Neueste CSV-Datei: {csv_file}")
     currency = "EUR"
 
     try:
